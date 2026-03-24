@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/cover.jpeg" alt="claude-code-statusline" width="100%">
+</p>
+
 # ◆ claude-code-statusline
 
 [English](README.md) | **繁體中文**
