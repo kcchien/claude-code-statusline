@@ -4,3 +4,5 @@
 /tmp/
 .memsearch/
 docs/fb-post-draft.md
+node_modules/
+docs/claude-code-statusline.pdf
