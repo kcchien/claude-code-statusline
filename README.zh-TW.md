@@ -43,6 +43,7 @@
 | **三層渲染退回** | 真彩色 → ANSI → ASCII。任何終端機都能用。 |
 | **Nerd Font 支援** | 選配：``, `󰔟`, `` 圖示。設定 `CLAUDE_STATUSLINE_NERDFONT=1`。 |
 | **Powerline 分隔符** | 選配：`` 箭頭。設定 `CLAUDE_STATUSLINE_POWERLINE=1`。 |
+| **啟動成本指示器** | 顯示你的啟動配置（CLAUDE.md、rules、memory、skills）吃掉多少上下文——在你開口問之前就已經消耗的量。進度條分色：暗灰（啟動）vs 漸層（對話）。 |
 | **< 50ms** | 單次 `jq` 呼叫 + Git 快取。無感延遲。 |
 
 ## 安裝
@@ -97,6 +98,23 @@ chmod +x ~/.claude/statusline.sh
 # 範例：在 ~/.zshrc 中
 export CLAUDE_STATUSLINE_NERDFONT=1  # 啟用 Nerd Font 圖示 + Powerline 箭頭
 ```
+
+## 啟動成本指示器
+
+大多數使用者不知道自己的啟動配置吃掉了多少上下文。一個大的 `CLAUDE.md`、很多 rules、memory 檔案和 skills，可以在你還沒開始工作之前就燒掉 10–30% 的上下文視窗。
+
+這個 fork 加入了**啟動成本快照**：狀態列在 session 中第一次執行時，會記錄當下的上下文用量作為「啟動成本」。之後：
+
+- **進度條**分為三個區域：暗灰（啟動）→ 漸層（對話）→ 空白
+- 百分比旁邊會出現灰色的 **`(boot N%)`** 標籤
+
+```
+◆ Opus 4 │ ██████░░░░ 45% (boot 27%) 1M │ $1.20 │ 10m0s
+           ^^          ^^^^
+           啟動(暗灰)   對話(漸層)
+```
+
+啟動快照存在 `/tmp/claude-statusline-boot`，每次新 session 自動重置。
 
 ## 運作原理
 

@@ -142,48 +142,79 @@ parsed=$(echo "$input" | jq -r '
 model="${model_name:-─}"
 
 # ═══════════════════════════════════════════════════════════════
-# 上下文進度條
+# 啟動成本快照（Boot Cost Snapshot）
 # ═══════════════════════════════════════════════════════════════
+
+BOOT_CACHE="/tmp/claude-statusline-boot"
 
 pct_int=${ctx_pct%.*}
 pct_int=${pct_int:-0}
 if (( pct_int < 0 )); then pct_int=0; fi
 if (( pct_int > 100 )); then pct_int=100; fi
 
+# 第一次執行時鎖定啟動成本
+boot_pct=0
+if [[ ! -f "$BOOT_CACHE" ]]; then
+  echo "$pct_int" > "$BOOT_CACHE"
+  boot_pct=$pct_int
+else
+  boot_pct=$(cat "$BOOT_CACHE" 2>/dev/null)
+  boot_pct=${boot_pct:-0}
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# 上下文進度條（含啟動成本分色）
+# ═══════════════════════════════════════════════════════════════
+
 bar_filled=$(( pct_int / 10 ))
 if (( bar_filled > 10 )); then bar_filled=10; fi
+
+boot_filled=$(( boot_pct / 10 ))
+if (( boot_filled > 10 )); then boot_filled=10; fi
 
 # 漸層色（真彩色）：綠 → 黃 → 橘 → 紅
 GRAD_R=(46 116 186 241 239 236 233 231 211 192)
 GRAD_G=(204 195 186 196 161 126 101 76 66 57)
 GRAD_B=(113 89 64 15 24 34 44 60 50 43)
 
+# 進度條三態：boot(暗灰█) → chat(漸層█) → 空(暗灰░)
 bar=""
 if [[ "$USE_ASCII" == "1" ]]; then
-  # ASCII 模式
   for (( i=0; i<10; i++ )); do
-    if (( i < bar_filled )); then bar+="#"; else bar+="-"; fi
+    if (( i < boot_filled )); then bar+="="
+    elif (( i < bar_filled )); then bar+="#"
+    else bar+="-"; fi
   done
 elif (( USE_TRUECOLOR )); then
-  # 真彩色漸層：每格獨立上色
   for (( i=0; i<10; i++ )); do
-    if (( i < bar_filled )); then
+    if (( i < boot_filled )); then
+      # boot 區：暗灰實心，表示「已被吃掉，回不來」
+      bar+="\\033[38;2;80;80;80m█"
+    elif (( i < bar_filled )); then
+      # chat 區：原版漸層色
       bar+="\\033[38;2;${GRAD_R[$i]};${GRAD_G[$i]};${GRAD_B[$i]}m█"
     else
+      # 空區：暗灰空心
       bar+="\\033[38;2;60;60;60m░"
     fi
   done
   bar+="${RST}"
 else
-  # ANSI 退回：依整體百分比選色
   if (( pct_int >= 90 )); then bar_color="$RED"
   elif (( pct_int >= 70 )); then bar_color="$YELLOW"
   else bar_color="$GREEN"; fi
 
   for (( i=0; i<10; i++ )); do
-    if (( i < bar_filled )); then bar+="█"; else bar+="░"; fi
+    if (( i < boot_filled )); then bar+="${GRAY}█${RST}"
+    elif (( i < bar_filled )); then bar+="${bar_color}█${RST}"
+    else bar+="░"; fi
   done
-  bar="${bar_color}${bar}${RST}"
+fi
+
+# boot 標籤（灰色小字，持續提醒）
+boot_label=""
+if (( boot_pct > 0 )); then
+  boot_label=" ${GRAY}(boot ${boot_pct}%)${RST}"
 fi
 
 # 百分比文字顏色（跟進度條整體色一致）
@@ -324,7 +355,7 @@ else prompt_color="$GREEN"; fi
 # ═══════════════════════════════════════════════════════════════
 
 line1="${PURPLE}${S_BRAND}${RST} ${CYAN}${model}${RST}"
-line1+="${SEP}${bar} ${pct_color}${pct_int}%${RST}${ctx_warn}${ctx_label}"
+line1+="${SEP}${bar} ${pct_color}${pct_int}%${RST}${boot_label}${ctx_warn}${ctx_label}"
 line1+="${SEP}${cost_color}${S_COST}\$${cost_fmt}${RST}"
 line1+="${dur_section}"
 line1+="${rate_section}"

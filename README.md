@@ -43,6 +43,7 @@ Turn the blank status bar into a real-time dashboard: model, context usage with 
 | **3-tier rendering** | True color → ANSI → ASCII. Works in any terminal. |
 | **Nerd Font support** | Optional: ``, `󰔟`, `` icons. Set `CLAUDE_STATUSLINE_NERDFONT=1`. |
 | **Powerline separators** | Optional: `` arrows. Set `CLAUDE_STATUSLINE_POWERLINE=1`. |
+| **Boot cost indicator** | Shows how much context your startup config (CLAUDE.md, rules, memory, skills) consumes — before you even ask a question. Progress bar splits into dark (boot) vs gradient (chat). |
 | **< 50ms** | Single `jq` call + cached git. No perceptible lag. |
 
 ## Installation
@@ -101,6 +102,23 @@ Example:
 # In ~/.zshrc
 export CLAUDE_STATUSLINE_NERDFONT=1  # Enable Nerd Font icons + Powerline arrows
 ```
+
+## Boot cost indicator
+
+Most users don't realize how much context their startup configuration consumes. A large `CLAUDE.md`, many rules, memory files, and skills can eat 10–30% of your context window before you even start working.
+
+This fork adds a **boot cost snapshot**: the first time the status line runs in a session, it records the current context usage as your "boot cost." From then on:
+
+- The **progress bar** splits into three zones: dark gray (boot) → gradient (chat) → empty
+- A **`(boot N%)`** label appears next to the percentage, in gray
+
+```
+◆ Opus 4 │ ██████░░░░ 45% (boot 27%) 1M │ $1.20 │ 10m0s
+           ^^          ^^^^
+           boot(dark)  chat(gradient)
+```
+
+The boot snapshot is stored in `/tmp/claude-statusline-boot` and resets with each new session.
 
 ## How it works
 
