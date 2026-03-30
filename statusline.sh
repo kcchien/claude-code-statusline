@@ -246,7 +246,9 @@ dirty=""
 
 git_cache_is_stale() {
   [[ ! -f "$GIT_CACHE" ]] && return 0
-  local cache_age=$(( $(date +%s) - $(stat -f %m "$GIT_CACHE" 2>/dev/null || echo 0) ))
+  local mtime
+  mtime=$(stat -c %Y "$GIT_CACHE" 2>/dev/null || stat -f %m "$GIT_CACHE" 2>/dev/null || echo 0)
+  local cache_age=$(( $(date +%s) - mtime ))
   (( cache_age > GIT_CACHE_MAX_AGE ))
 }
 
@@ -334,13 +336,14 @@ line1+="${rate_section}"
 # ═══════════════════════════════════════════════════════════════
 
 parts=()
+# PS1-style user@host prefix (from ~/.bashrc PS1)
+parts+=("${GREEN}$(whoami)@$(hostname -s)${RST}:${BLUE}${cwd_full}${RST}")
 if [[ -n "$git_branch" ]]; then
   parts+=("${GRAY}${S_BRANCH}${git_branch}${dirty}${RST}")
 fi
 if [[ -n "$lines_section" ]]; then
   parts+=("${lines_section}")
 fi
-parts+=("${BLUE}${dir}${RST}")
 
 # Agent / Worktree 指示器（僅在非主 session 時顯示）
 if [[ -n "${wt_name:-}" ]]; then
